@@ -87,32 +87,22 @@
             background-color: #0056b3;
         }
         @media (max-width: 768px) {
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+
     #details {
         width: 100%; /* Forma do të mbulojë të gjithë gjerësinë */
         padding: 10px;
         background: #f8f9fa;
         overflow-y: auto;
-        display: flex;
-        flex-direction: column;
     }
 
     #map {
         width: 100%; /* Mapi do të mbulojë të gjithë gjerësinë */
         height: 250px; /* Lartësia e mapit mund të ndryshohet sipas nevojës */
         margin-top: 20px; /* Hapësirë mes formës dhe mapit */
-    }
-
-    .input-group {
-        margin-bottom: 15px;
-    }
-
-    .car-selection {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .car-option img {
-        max-width: 120px;
     }
 }
     </style>
