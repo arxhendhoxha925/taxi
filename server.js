@@ -36,7 +36,8 @@ const cors = require('cors');
 app.use(cors());
 
 // Nise serverin në portën 3000
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Serveri po dëgjon në portën ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
+
