@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezervim Taksi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            height: 100vh;
+        }
+        #details {
+            width: 50%;
+            padding: 20px;
+            background: #f8f9fa;
+            overflow-y: auto;
+        }
+        #map {
+            width: 50%;
+            height: 100%;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            min-width: 120px;
+            margin-right: 10px;
+        }
+        .input-group input[type="text"],
+        .input-group input[type="date"],
+        .input-group input[type="time"],
+        .input-group select {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .car-selection {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+        .car-option {
+            text-align: center;
+            cursor: pointer;
+        }
+        .car-option img {
+            width: 150px;
+            height: 100px;
+            border-radius: 5px;
+            border: 2px solid #ccc;
+            transition: 0.3s;
+        }
+        .car-option input[type="radio"] {
+            display: none;
+        }
+        .car-option input[type="radio"]:checked + img {
+            border-color: #007bff;
+        }
+    #phone {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100%; /* Përdor gjerësinë e plotë */
+    }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:enabled {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="details">
+        <div id="header" style="text-align: center;">
+            <img src="logo.png" alt="Logo">
+            <h1>Rezervim Taksi</h1>
+        </div>
+        
+        <div class="input-group">
+            <label for="name">Emri dhe Mbiemri:</label>
+            <input id="name" type="text" placeholder="Vendosni emrin dhe mbiemrin" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label for="phone">Numri i Telefonit:</label>
+            <input id="phone" type="tel" maxlength="9" placeholder="Vendosni numrin tuaj" autocomplete="off" title="Numri i telefonit duhet të përmbajë vetëm 9 shifra dhe të mos përmbajë shkronja ose simbole">
+        </div>        
+        <div class="input-group">
+            <label for="origin">Pika e Nisjes:</label>
+            <input id="origin" type="text" placeholder="Vendosni adresën" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label for="destination">Destinacioni:</label>
+            <input id="destination" type="text" placeholder="Vendosni destinacionin" autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label for="date">Data:</label>
+            <input id="date" type="date" autocomplete="on">
+        </div>
+
+        <div class="input-group">
+            <label for="time">Ora:</label>
+            <input id="time" type="time" autocomplete="on">
+        </div>
+
+        <h3>Zgjidhni Llojin e Veturës:</h3>
+        <div class="car-selection">
+            <div class="car-option">
+                <input type="radio" name="car" id="suv" value="1.5">
+                <img src="suv.jpg" alt="SUV" onclick="selectCar('suv')">
+                <p>SUV</p>
+            </div>
+            <div class="car-option">
+                <input type="radio" name="car" id="sedan" value="1">
+                <img src="sedan.jpg" alt="Sedan" onclick="selectCar('sedan')">
+                <p>Sedan</p>
+            </div>
+            <div class="car-option">
+                <input type="radio" name="car" id="van" value="2">
+                <img src="van.jpg" alt="Van" onclick="selectCar('van')">
+                <p>Van</p>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="trip-type">Lloji i udhëtimit:</label>
+            <select id="trip-type">
+                <option value="oneway">Nje drejtimsh</option>
+                <option value="return">Kthyes</option>
+            </select>
+        </div>
+
+        <button id="calculate-btn" onclick="calculateRoute()" disabled>Llogarit Rrugën</button>
+        <div id="output"></div>
+        <button id="confirm-btn" onclick="confirmBooking()" disabled>Konfirmo Rezervimin</button>
+    </div>
+    
+    <div id="map"></div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDEhNJkqeBpY8BAkXtudDnCpaiqj8ZZUVU&libraries=places"></script>
+    <script>
+        let map, directionsService, directionsRenderer, calculatedPrice, selectedCarName;
+    
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 42.6629, lng: 21.1655 },
+                zoom: 16,
+                mapTypeId: 'satellite'
+            });
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsRenderer.setMap(map);
+    
+            new google.maps.places.Autocomplete(document.getElementById("origin"));
+            new google.maps.places.Autocomplete(document.getElementById("destination"));
+    
+            const inputs = document.querySelectorAll("#name, #phone, #origin, #destination, #date, #time");
+            inputs.forEach(input => input.addEventListener("input", validateInputs));
+    
+            document.querySelectorAll('input[name="car"]').forEach(input => {
+                input.addEventListener("change", validateInputs);
+            });
+        }
+    
+        function selectCar(carType) {
+            document.querySelectorAll('input[name="car"]').forEach(input => {
+                input.checked = false;
+            });
+            document.getElementById(carType).checked = true;
+            validateInputs();
+        }
+    
+        function validateInputs() {
+            const name = document.getElementById("name").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const origin = document.getElementById("origin").value.trim();
+            const destination = document.getElementById("destination").value.trim();
+            const date = document.getElementById("date").value.trim();
+            const time = document.getElementById("time").value.trim();
+            const carSelected = document.querySelector('input[name="car"]:checked');
+            
+            if (carSelected) {
+                calculatedPrice = parseFloat(carSelected.value);
+                selectedCarName = carSelected.nextElementSibling.alt; // Marrim emrin e veturës nga atributi 'alt' i imazhit
+            }
+    
+            document.getElementById("calculate-btn").disabled = !(name && phone && origin && destination && date && time && carSelected);
+            document.getElementById("confirm-btn").disabled = true;
+        }
+    
+        function calculateRoute() {
+            const origin = document.getElementById("origin").value;
+            const destination = document.getElementById("destination").value;
+            const tripType = document.getElementById("trip-type").value;
+            const finalPrice = tripType === "return" ? calculatedPrice * 2 : calculatedPrice;
+    
+            if (origin && destination) {
+                directionsService.route({
+                    origin: origin,
+                    destination: destination,
+                    travelMode: 'DRIVING'
+                }, (result, status) => {
+                    if (status === 'OK') {
+                        directionsRenderer.setDirections(result);
+                        const distance = result.routes[0].legs[0].distance.value / 1000;
+                        const price = (distance * finalPrice).toFixed(2);
+                        document.getElementById("output").innerHTML = 
+                            `<p>Distanca: ${distance.toFixed(2)} km</p>
+                             <p>Çmimi: €${price}</p>`;
+                        document.getElementById("confirm-btn").disabled = false;
+                    } else {
+                        alert('Nuk mund të gjendet rruga!');
+                    }
+                });
+            }
+        }
+    
+        function confirmBooking() {
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const origin = document.getElementById("origin").value.trim();
+    const destination = document.getElementById("destination").value.trim();
+    const date = document.getElementById("date").value.trim();
+    const time = document.getElementById("time").value.trim();
+    const selectedCar = document.querySelector('input[name="car"]:checked');
+    const carType = selectedCar ? selectedCar.nextElementSibling.alt : "I papërcaktuar"; // SUV, Sedan ose Van
+    const tripType = document.getElementById("trip-type").value;
+    const price = document.getElementById("output").innerText.match(/Çmimi: €(\d+\.\d+)/)[1]; // Ekstrakto çmimin nga output
+
+    const emailBody = `Emri: ${name}
+    Numri i Telefonit: ${phone}
+    Pika e Nisjes: ${origin}
+    Destinacioni: ${destination}
+    Data: ${date}
+    Ora: ${time}
+    Lloji i Vetures: ${carType}
+    Lloji i Udhëtimit: ${tripType === "oneway" ? "Një drejtimsh" : "Kthyes"}
+    Çmimi: €${price}
+    `;
+
+    sendEmail(emailBody);
+    alert("Rezervimi juaj është konfirmuar. Do të paguani në dorëzim.");
+    resetFields(); // Shto këtë thirrje për të resetuar fushat pas konfirmimit
+}
+
+function sendEmail(bodyContent) {
+    fetch("http://localhost:3000/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            subject: "Rezervim Taksi",
+            body: bodyContent,
+        }),
+    })
+        .then((response) => {
+            if (response.ok) {
+                console.log("Email i dërguar me sukses");
+            } else {
+                console.error("Ka ndodhur një gabim gjatë dërgimit të emailit.");
+            }
+        })
+        .catch((error) => {
+            console.error("Gabim:", error);
+        });
+}
+
+function resetFields() {
+    document.getElementById("name").value = "";
+    document.getElementById("phone").value = "";
+    document.getElementById("origin").value = "";
+    document.getElementById("destination").value = "";
+    document.getElementById("date").value = "";
+    document.getElementById("time").value = "";
+    document.querySelectorAll('input[name="car"]').forEach(input => input.checked = false);
+    document.getElementById("trip-type").value = "oneway";
+    document.getElementById("output").innerHTML = "";
+    document.getElementById("calculate-btn").disabled = true;
+    document.getElementById("confirm-btn").disabled = true;
+}
+    
+        window.onload = initMap;
+    </script>    
+</body>
+</html>
